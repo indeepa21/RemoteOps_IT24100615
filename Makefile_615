@@ -1,0 +1,16 @@
+CC = gcc
+CFLAGS = -Wall -Wextra -Wpedantic
+
+AGENT = agent_615
+CONTROLLER = controller_615
+
+all: $(AGENT) $(CONTROLLER)
+
+$(AGENT): agent_615.c
+	$(CC) $(CFLAGS) agent_615.c -o $(AGENT)
+
+$(CONTROLLER): controller_615.c
+	$(CC) $(CFLAGS) controller_615.c -o $(CONTROLLER)
+
+clean:
+	rm -f $(AGENT) $(CONTROLLER)

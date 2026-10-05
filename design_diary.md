@@ -26,3 +26,13 @@ I initialized Git and created my first commit:
 chore: initialize RemoteOps project
 
 So far, I have only completed the project setup. I have not started implementing the network code yet.
+
+## Build Setup
+
+I created simple starter versions of agent_615.c and controller_615.c.
+
+I created Makefile_615 using GCC with the warning options -Wall, -Wextra and -Wpedantic.
+
+I tested the build, clean and rebuild process successfully.
+
+At this stage, the Agent and Controller only print personalised information. TCP socket communication has not been implemented yet.

@@ -35,3 +35,13 @@ Why did I get the error "fatal: not a git repository"?
 
 How I used it:
 I learned that I was running the Git command outside the project folder. I changed to the RemoteOps_IT24100615 folder and ran the command again
+
+## Entry 5
+
+Tool: ChatGPT
+
+Prompt:
+Asked for Step 6 to create the Makefile and first simple C programs.
+
+How I used it:
+I created Makefile_615, simple starter Agent and Controller programs, compiled them with GCC, tested make clean, rebuilt them, and ran both programs.
