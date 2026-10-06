@@ -75,3 +75,13 @@ Asked for Step 9 to implement reliable TCP line framing.
 
 How I used it:
 I implemented a buffered receive_line() function so the Agent can handle partial TCP lines and multiple newline-terminated lines. I tested both cases using Netcat and shell printf commands.
+
+## Entry 9
+
+Tool: ChatGPT
+
+Prompt:
+Asked for the next step after reliable TCP line framing.
+
+How I used it:
+I implemented AUTH using the personalised token OPS-0615, added SID:5160 to Agent responses, tested successful and failed authentication, and tested rejection of a command before authentication.

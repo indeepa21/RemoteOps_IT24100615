@@ -15,6 +15,8 @@
 #define RECEIVE_BUFFER_SIZE 4096
 #define LINE_SIZE 1024
 
+#define AUTH_TOKEN "OPS-0615"
+#define SID "5160"
 /*
  * Stores TCP bytes that have been received but
  * have not yet been returned as a complete line.
@@ -136,6 +138,45 @@ int receive_line(int socket_fd,
     }
 }
 
+int send_all(int socket_fd, const char *data, size_t length)
+{
+    size_t total_sent = 0;
+
+    while (total_sent < length)
+    {
+        ssize_t bytes_sent = send(
+            socket_fd,
+            data + total_sent,
+            length - total_sent,
+            0
+        );
+
+        if (bytes_sent < 0)
+        {
+            if (errno == EINTR)
+            {
+                continue;
+            }
+
+            return -1;
+        }
+
+        if (bytes_sent == 0)
+        {
+            return -1;
+        }
+
+        total_sent += (size_t)bytes_sent;
+    }
+
+    return 0;
+}
+
+int send_response(int socket_fd, const char *response)
+{
+    return send_all(socket_fd, response, strlen(response));
+}
+
 
 int main(void)
 {
@@ -216,6 +257,8 @@ int main(void)
     LineReader reader = {0};
     char line[LINE_SIZE];
 
+    int authenticated = 0;
+
     /*
      * Continue reading complete lines until
      * the Controller disconnects.
@@ -231,7 +274,77 @@ int main(void)
 
         if (result == 1)
         {
-            printf("Received complete line: %s\n", line);
+            if (result == 1)
+{
+    printf("Received complete line: %s\n", line);
+
+    /*
+     * AUTH command
+     */
+    if (strncmp(line, "AUTH ", 5) == 0)
+    {
+        const char *token = line + 5;
+
+        if (strcmp(token, AUTH_TOKEN) == 0)
+        {
+            authenticated = 1;
+
+            if (send_response(
+                    client_socket,
+                    "OK AUTHENTICATED SID:5160\n") < 0)
+            {
+                perror("send");
+                break;
+            }
+
+            printf("Authentication successful.\n");
+        }
+        else
+        {
+            if (send_response(
+                    client_socket,
+                    "ERR 001 AUTH_FAILED SID:5160\n") < 0)
+            {
+                perror("send");
+                break;
+            }
+
+            printf("Authentication failed.\n");
+        }
+    }
+
+    /*
+     * Reject commands before AUTH succeeds.
+     */
+    else if (!authenticated)
+    {
+        if (send_response(
+                client_socket,
+                "ERR 003 NOT_AUTHENTICATED SID:5160\n") < 0)
+        {
+            perror("send");
+            break;
+        }
+
+        printf("Command rejected: client not authenticated.\n");
+    }
+
+    /*
+     * Other commands will be implemented later.
+     */
+    else
+    {
+        if (send_response(
+                client_socket,
+                "ERR 003 COMMAND_NOT_IMPLEMENTED SID:5160\n") < 0)
+        {
+            perror("send");
+            break;
+        }
+
+        printf("Authenticated command not implemented yet.\n");
+    }
+}
         }
         else if (result == 0)
         {

@@ -66,3 +66,17 @@ I implemented a receive buffer and a receive_line() function. The function waits
 I tested multiple lines sent through one connection and also tested a line sent in two separate parts.
 
 The Agent correctly separated and reconstructed the lines.
+
+## Authentication and SID
+
+I implemented the AUTH command using my personalised token OPS-0615.
+
+Each new connection starts as unauthenticated. If the correct token is received, the connection is marked as authenticated.
+
+Successful authentication returns:
+OK AUTHENTICATED SID:5160
+
+An incorrect token returns:
+ERR 001 AUTH_FAILED SID:5160
+
+I also tested that commands are rejected before successful authentication.
