@@ -55,3 +55,13 @@ Asked for Step 7 to implement the basic RemoteOps Agent TCP server.
 
 How I used it:
 I added socket(), bind(), listen() and accept() to agent_615.c, compiled the program, verified that it listened on port 9410 using ss, and tested one TCP connection.
+
+## Entry 7
+
+Tool: ChatGPT
+
+Prompt:
+Asked for help completing the basic Controller TCP connection.
+
+How I used it:
+I added socket(), inet_pton() and connect() to controller_615.c, compiled the program, and tested a successful TCP connection to the Agent on port 9410.

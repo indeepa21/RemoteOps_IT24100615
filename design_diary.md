@@ -46,3 +46,13 @@ The Agent creates an IPv4 TCP socket, binds it to my personalised port 9410, sta
 I used the ss command to confirm that the Agent was listening on port 9410.
 
 At this stage, the Agent accepts only one connection and then exits. Authentication, commands and concurrency have not been implemented yet.
+
+## Basic TCP Controller
+
+I implemented the Controller as a TCP client.
+
+The Controller creates an IPv4 TCP socket and connects to the Agent at 127.0.0.1 using my personalised port 9410.
+
+I tested the Agent and Controller together successfully.
+
+At this stage, the Controller only connects and disconnects. Authentication and protocol commands have not been implemented yet.~
