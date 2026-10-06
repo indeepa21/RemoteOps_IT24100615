@@ -36,3 +36,13 @@ I created Makefile_615 using GCC with the warning options -Wall, -Wextra and -Wp
 I tested the build, clean and rebuild process successfully.
 
 At this stage, the Agent and Controller only print personalised information. TCP socket communication has not been implemented yet.
+
+## Basic TCP Agent Server
+
+I changed agent_615.c from a starter program into a basic TCP server.
+
+The Agent creates an IPv4 TCP socket, binds it to my personalised port 9410, starts listening, and accepts one client connection.
+
+I used the ss command to confirm that the Agent was listening on port 9410.
+
+At this stage, the Agent accepts only one connection and then exits. Authentication, commands and concurrency have not been implemented yet.

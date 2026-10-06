@@ -45,3 +45,13 @@ Asked for Step 6 to create the Makefile and first simple C programs.
 
 How I used it:
 I created Makefile_615, simple starter Agent and Controller programs, compiled them with GCC, tested make clean, rebuilt them, and ran both programs.
+
+## Entry 6
+
+Tool: ChatGPT
+
+Prompt:
+Asked for Step 7 to implement the basic RemoteOps Agent TCP server.
+
+How I used it:
+I added socket(), bind(), listen() and accept() to agent_615.c, compiled the program, verified that it listened on port 9410 using ss, and tested one TCP connection.
