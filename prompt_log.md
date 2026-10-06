@@ -85,3 +85,13 @@ Asked for the next step after reliable TCP line framing.
 
 How I used it:
 I implemented AUTH using the personalised token OPS-0615, added SID:5160 to Agent responses, tested successful and failed authentication, and tested rejection of a command before authentication.
+
+## Entry 10
+
+Tool: ChatGPT
+
+Prompt:
+Asked for the next step after implementing authentication.
+
+How I used it:
+I implemented SYSINFO using Linux /proc files and tested the command after successful authentication.

@@ -80,3 +80,11 @@ An incorrect token returns:
 ERR 001 AUTH_FAILED SID:5160
 
 I also tested that commands are rejected before successful authentication.
+
+## SYSINFO
+
+I implemented the SYSINFO command after authentication.
+
+The Agent reads the current system load from /proc/loadavg, memory information from /proc/meminfo, and uptime from /proc/uptime.
+
+The response includes CPU load, memory used in MB, uptime in seconds, and SID:5160.

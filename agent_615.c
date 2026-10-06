@@ -177,6 +177,93 @@ int send_response(int socket_fd, const char *response)
     return send_all(socket_fd, response, strlen(response));
 }
 
+int get_sysinfo(double *cpu_load,
+                long *mem_used_mb,
+                long *uptime_sec)
+{
+    FILE *file;
+
+    /*
+     * Read the 1-minute system load average.
+     */
+    file = fopen("/proc/loadavg", "r");
+
+    if (file == NULL)
+    {
+        return -1;
+    }
+
+    if (fscanf(file, "%lf", cpu_load) != 1)
+    {
+        fclose(file);
+        return -1;
+    }
+
+    fclose(file);
+
+    /*
+     * Read memory information.
+     */
+    file = fopen("/proc/meminfo", "r");
+
+    if (file == NULL)
+    {
+        return -1;
+    }
+
+    long mem_total_kb = 0;
+    long mem_available_kb = 0;
+
+    char key[64];
+    long value;
+    char unit[32];
+
+    while (fscanf(file, "%63s %ld %31s", key, &value, unit) == 3)
+    {
+        if (strcmp(key, "MemTotal:") == 0)
+        {
+            mem_total_kb = value;
+        }
+        else if (strcmp(key, "MemAvailable:") == 0)
+        {
+            mem_available_kb = value;
+        }
+    }
+
+    fclose(file);
+
+    if (mem_total_kb == 0)
+    {
+        return -1;
+    }
+
+    *mem_used_mb =
+        (mem_total_kb - mem_available_kb) / 1024;
+
+    /*
+     * Read system uptime.
+     */
+    file = fopen("/proc/uptime", "r");
+
+    if (file == NULL)
+    {
+        return -1;
+    }
+
+    double uptime;
+
+    if (fscanf(file, "%lf", &uptime) != 1)
+    {
+        fclose(file);
+        return -1;
+    }
+
+    fclose(file);
+
+    *uptime_sec = (long)uptime;
+
+    return 0;
+}
 
 int main(void)
 {
@@ -328,7 +415,49 @@ int main(void)
 
         printf("Command rejected: client not authenticated.\n");
     }
+    else if (strcmp(line, "SYSINFO") == 0)
+{
+    double cpu_load;
+    long mem_used_mb;
+    long uptime_sec;
 
+    if (get_sysinfo(
+            &cpu_load,
+            &mem_used_mb,
+            &uptime_sec) == 0)
+    {
+        char response[256];
+
+        snprintf(
+            response,
+            sizeof(response),
+            "OK SYSINFO %.2f %ld %ld SID:5160\n",
+            cpu_load,
+            mem_used_mb,
+            uptime_sec
+        );
+
+        if (send_response(client_socket, response) < 0)
+        {
+            perror("send");
+            break;
+        }
+
+        printf("SYSINFO sent successfully.\n");
+    }
+    else
+    {
+        if (send_response(
+                client_socket,
+                "ERR 006 SYSINFO_FAILED SID:5160\n") < 0)
+        {
+            perror("send");
+            break;
+        }
+
+        printf("Failed to read system information.\n");
+    }
+}
     /*
      * Other commands will be implemented later.
      */
