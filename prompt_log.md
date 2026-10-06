@@ -65,3 +65,13 @@ Asked for help completing the basic Controller TCP connection.
 
 How I used it:
 I added socket(), inet_pton() and connect() to controller_615.c, compiled the program, and tested a successful TCP connection to the Agent on port 9410.
+
+## Entry 8
+
+Tool: ChatGPT
+
+Prompt:
+Asked for Step 9 to implement reliable TCP line framing.
+
+How I used it:
+I implemented a buffered receive_line() function so the Agent can handle partial TCP lines and multiple newline-terminated lines. I tested both cases using Netcat and shell printf commands.

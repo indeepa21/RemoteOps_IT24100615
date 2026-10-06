@@ -56,3 +56,13 @@ The Controller creates an IPv4 TCP socket and connects to the Agent at 127.0.0.1
 I tested the Agent and Controller together successfully.
 
 At this stage, the Controller only connects and disconnects. Authentication and protocol commands have not been implemented yet.~
+
+## Reliable TCP Line Framing
+
+I learned that TCP is a byte stream and one recv() call does not always correspond to one command.
+
+I implemented a receive buffer and a receive_line() function. The function waits until it finds a newline before returning a complete line.
+
+I tested multiple lines sent through one connection and also tested a line sent in two separate parts.
+
+The Agent correctly separated and reconstructed the lines.

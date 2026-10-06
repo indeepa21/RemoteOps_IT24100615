@@ -1,9 +1,8 @@
 #include <stdio.h>
-
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -12,6 +11,131 @@
 
 #define AGENT_PORT 9410
 #define BACKLOG 5
+
+#define RECEIVE_BUFFER_SIZE 4096
+#define LINE_SIZE 1024
+
+/*
+ * Stores TCP bytes that have been received but
+ * have not yet been returned as a complete line.
+ */
+typedef struct
+{
+    char buffer[RECEIVE_BUFFER_SIZE];
+    size_t start;
+    size_t end;
+} LineReader;
+
+
+/*
+ * Receives one complete newline-terminated line.
+ *
+ * Return values:
+ *  1  = complete line received
+ *  0  = client disconnected
+ * -1  = recv() error
+ * -2  = line was too long
+ */
+int receive_line(int socket_fd,
+                 LineReader *reader,
+                 char *line,
+                 size_t line_size)
+{
+    size_t line_length = 0;
+
+    while (1)
+    {
+        /*
+         * First use any bytes already stored
+         * in our receive buffer.
+         */
+        while (reader->start < reader->end)
+        {
+            char current_char = reader->buffer[reader->start++];
+
+            /*
+             * A newline means one complete
+             * protocol line has been received.
+             */
+            if (current_char == '\n')
+            {
+                /*
+                 * Remove optional carriage return.
+                 * This also makes testing with some
+                 * terminal programs easier.
+                 */
+                if (line_length > 0 &&
+                    line[line_length - 1] == '\r')
+                {
+                    line_length--;
+                }
+
+                line[line_length] = '\0';
+
+                /*
+                 * If all buffered data was used,
+                 * reset the indexes.
+                 */
+                if (reader->start == reader->end)
+                {
+                    reader->start = 0;
+                    reader->end = 0;
+                }
+
+                return 1;
+            }
+
+            /*
+             * Leave one byte for '\0'.
+             */
+            if (line_length + 1 >= line_size)
+            {
+                return -2;
+            }
+
+            line[line_length++] = current_char;
+        }
+
+        /*
+         * Existing buffered bytes have been used.
+         * Receive another block from TCP.
+         */
+        reader->start = 0;
+        reader->end = 0;
+
+        ssize_t bytes_received =
+            recv(socket_fd,
+                 reader->buffer,
+                 sizeof(reader->buffer),
+                 0);
+
+        if (bytes_received == 0)
+        {
+            /*
+             * The Controller closed its TCP
+             * connection.
+             */
+            return 0;
+        }
+
+        if (bytes_received < 0)
+        {
+            /*
+             * Retry if recv() was interrupted
+             * by a signal.
+             */
+            if (errno == EINTR)
+            {
+                continue;
+            }
+
+            return -1;
+        }
+
+        reader->end = (size_t)bytes_received;
+    }
+}
+
 
 int main(void)
 {
@@ -24,9 +148,7 @@ int main(void)
     socklen_t client_address_length;
 
     /*
-     * Create a TCP socket.
-     * AF_INET     = IPv4
-     * SOCK_STREAM = TCP
+     * Create an IPv4 TCP socket.
      */
     server_socket = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -36,20 +158,14 @@ int main(void)
         return 1;
     }
 
-    /*
-     * Clear the server address structure.
-     */
     memset(&server_address, 0, sizeof(server_address));
 
-    /*
-     * Configure the address.
-     */
     server_address.sin_family = AF_INET;
     server_address.sin_addr.s_addr = htonl(INADDR_ANY);
     server_address.sin_port = htons(AGENT_PORT);
 
     /*
-     * Bind the socket to port 9410.
+     * Bind to personalised port 9410.
      */
     if (bind(server_socket,
              (struct sockaddr *)&server_address,
@@ -61,7 +177,7 @@ int main(void)
     }
 
     /*
-     * Start listening for TCP connections.
+     * Start listening.
      */
     if (listen(server_socket, BACKLOG) < 0)
     {
@@ -73,11 +189,11 @@ int main(void)
     printf("RemoteOps Agent - IT24100615\n");
     printf("Listening on TCP port %d...\n", AGENT_PORT);
 
-    /*
-     * Wait for one Controller connection.
-     */
     client_address_length = sizeof(client_address);
 
+    /*
+     * Accept one connection for this stage.
+     */
     client_socket = accept(
         server_socket,
         (struct sockaddr *)&client_address,
@@ -95,12 +211,49 @@ int main(void)
            inet_ntoa(client_address.sin_addr));
 
     /*
-     * We are only testing connection handling now.
+     * Each connection has its own line buffer.
      */
+    LineReader reader = {0};
+    char line[LINE_SIZE];
+
+    /*
+     * Continue reading complete lines until
+     * the Controller disconnects.
+     */
+    while (1)
+    {
+        int result = receive_line(
+            client_socket,
+            &reader,
+            line,
+            sizeof(line)
+        );
+
+        if (result == 1)
+        {
+            printf("Received complete line: %s\n", line);
+        }
+        else if (result == 0)
+        {
+            printf("Controller disconnected.\n");
+            break;
+        }
+        else if (result == -2)
+        {
+            printf("Received line was too long.\n");
+            break;
+        }
+        else
+        {
+            perror("recv");
+            break;
+        }
+    }
+
     close(client_socket);
     close(server_socket);
 
-    printf("Connection closed.\n");
+    printf("Agent stopped.\n");
 
     return 0;
 }
