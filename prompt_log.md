@@ -155,3 +155,13 @@ Asked for Step 17 to implement MONITOR STOP.
 
 How I used it:
 I added handling for MONITOR STOP so the Agent terminates the active UDP monitoring process and returns the required SID-tagged response.
+
+## Entry 17
+
+Tool: ChatGPT
+
+Prompt:
+Asked for Step 18 to implement QUIT.
+
+How I used it:
+I implemented QUIT so the Agent sends the required BYE response, stops active monitoring if necessary, and closes the TCP connection cleanly.

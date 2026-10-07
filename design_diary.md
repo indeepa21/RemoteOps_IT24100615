@@ -153,3 +153,14 @@ After monitoring stops, the Agent returns:
 OK MONITOR_STOPPED SID:5160
 
 I tested that UDP monitoring messages stop after the command.
+
+## QUIT
+
+I implemented the QUIT command for authenticated sessions.
+
+The Agent sends:
+OK BYE SID:5160
+
+If UDP monitoring is active, the Agent stops the monitoring child process before closing the TCP connection.
+
+The QUIT command then exits the command-processing loop and closes the connection cleanly.

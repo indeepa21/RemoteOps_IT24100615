@@ -1467,6 +1467,36 @@ else if (strcmp(line, "MONITOR STOP") == 0)
     }
 }
 
+
+else if (strcmp(line, "QUIT") == 0)
+{
+    /*
+     * Stop active UDP monitoring for this session.
+     */
+    if (monitor_pid > 0)
+    {
+        kill(monitor_pid, SIGTERM);
+        waitpid(monitor_pid, NULL, 0);
+
+        monitor_pid = -1;
+
+        printf("UDP monitoring stopped before QUIT.\n");
+    }
+
+    /*
+     * Send the required protocol response.
+     */
+    if (send_response(
+            client_socket,
+            "OK BYE SID:" SID "\n") < 0)
+    {
+        perror("send");
+    }
+
+    printf("QUIT received. Closing connection.\n");
+
+    break;
+}
             /*
              * Commands not implemented yet.
              *
