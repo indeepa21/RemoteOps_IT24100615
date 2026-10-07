@@ -617,6 +617,55 @@ int receive_file_bytes(int socket_fd,
     return 0;
 }
 
+int send_file_bytes(int socket_fd,
+                    FILE *file,
+                    long file_size)
+{
+    char buffer[4096];
+    long total_sent = 0;
+
+    while (total_sent < file_size)
+    {
+        long remaining = file_size - total_sent;
+        size_t to_read = sizeof(buffer);
+
+        if ((long)to_read > remaining)
+        {
+            to_read = (size_t)remaining;
+        }
+
+        size_t bytes_read = fread(
+            buffer,
+            1,
+            to_read,
+            file
+        );
+
+        if (bytes_read == 0)
+        {
+            if (ferror(file))
+            {
+                return -1;
+            }
+
+            return -1;
+        }
+
+        if (send_all(
+                socket_fd,
+                buffer,
+                bytes_read) < 0)
+        {
+            return -1;
+        }
+
+        total_sent += (long)bytes_read;
+    }
+
+    return 0;
+}
+
+
 
 int main(void)
 {
@@ -1121,6 +1170,121 @@ else if (strncmp(line, "PUT ", 4) == 0)
 
     printf(
         "PUT completed: %s (%ld bytes)\n",
+        filename,
+        file_size
+    );
+}
+
+else if (strncmp(line, "GET ", 4) == 0)
+{
+    const char *filename = line + 4;
+
+    if (!valid_filename(filename))
+    {
+        if (send_response(
+                client_socket,
+                "ERR 005 FILE_NOT_FOUND SID:" SID "\n") < 0)
+        {
+            perror("send");
+            break;
+        }
+
+        continue;
+    }
+
+    char file_path[512];
+
+    snprintf(
+        file_path,
+        sizeof(file_path),
+        "%s/%s",
+        STORAGE_DIR,
+        filename
+    );
+
+    FILE *file = fopen(file_path, "rb");
+
+    if (file == NULL)
+    {
+        if (send_response(
+                client_socket,
+                "ERR 005 FILE_NOT_FOUND SID:" SID "\n") < 0)
+        {
+            perror("send");
+            break;
+        }
+
+        printf(
+            "GET failed: file not found: %s\n",
+            filename
+        );
+
+        continue;
+    }
+
+    /*
+     * Find file size.
+     */
+    if (fseek(file, 0, SEEK_END) != 0)
+    {
+        fclose(file);
+        break;
+    }
+
+    long file_size = ftell(file);
+
+    if (file_size < 0)
+    {
+        fclose(file);
+        break;
+    }
+
+    rewind(file);
+
+    /*
+     * Send the required GET response header first.
+     */
+    char response[512];
+
+    snprintf(
+        response,
+        sizeof(response),
+        "OK FILE_SEND %s %ld SID:%s\n",
+        filename,
+        file_size,
+        SID
+    );
+
+    if (send_response(
+            client_socket,
+            response) < 0)
+    {
+        fclose(file);
+        perror("send");
+        break;
+    }
+
+    /*
+     * Immediately send exactly file_size raw bytes.
+     */
+    if (send_file_bytes(
+            client_socket,
+            file,
+            file_size) < 0)
+    {
+        fclose(file);
+
+        printf(
+            "GET failed while sending file.\n"
+        );
+
+        break;
+    }
+
+    fclose(file);
+
+    printf(
+        "GET completed: %s (%ld bytes)\n",
         filename,
         file_size
     );

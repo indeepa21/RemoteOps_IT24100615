@@ -125,3 +125,13 @@ Asked for Step 14 to implement PUT file upload.
 
 How I used it:
 I implemented exact-byte file reception for PUT, stored uploaded files under my personalised storage directory, and tested the upload and file integrity.
+
+## Entry 14
+
+Tool: ChatGPT
+
+Prompt:
+Asked for Step 15 to implement GET file download.
+
+How I used it:
+I implemented GET so the Agent sends the response header followed by the exact raw file bytes. I tested a successful download, file integrity, and the FILE_NOT_FOUND error.

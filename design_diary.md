@@ -120,3 +120,13 @@ The receive function also handles file bytes that may already be present in the 
 Uploaded files are stored under ./agentfiles/IT24100615/.
 
 I selected a maximum upload size of 10 MB.
+
+## GET File Download
+
+I implemented the GET command for authenticated clients.
+
+The Agent opens the requested file from ./agentfiles/IT24100615/, determines its exact size, sends the FILE_SEND response, and then sends exactly that number of raw bytes.
+
+I tested a successful download and compared the downloaded file using SHA-256.
+
+I also tested the FILE_NOT_FOUND response.
