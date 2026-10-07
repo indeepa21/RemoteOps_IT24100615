@@ -731,7 +731,6 @@ void run_udp_monitor(const char *controller_ip, int udp_port)
     }
 }
 
-
 int main(void)
 {
     int server_socket;
@@ -1445,6 +1444,27 @@ else if (strncmp(line, "MONITOR START ", 14) == 0)
         controller_ip,
         udp_port
     );
+}
+
+else if (strcmp(line, "MONITOR STOP") == 0)
+{
+    if (monitor_pid > 0)
+    {
+        kill(monitor_pid, SIGTERM);
+        waitpid(monitor_pid, NULL, 0);
+
+        monitor_pid = -1;
+
+        printf("UDP monitoring stopped.\n");
+    }
+
+    if (send_response(
+            client_socket,
+            "OK MONITOR_STOPPED SID:" SID "\n") < 0)
+    {
+        perror("send");
+        break;
+    }
 }
 
             /*

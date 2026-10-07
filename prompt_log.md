@@ -145,3 +145,13 @@ Asked for Step 16 to implement UDP MONITOR START.
 
 How I used it:
 I implemented a UDP monitoring process that sends periodic SYSINFO-style datagrams to the Controller and includes SID:5160.
+
+## Entry 16
+
+Tool: ChatGPT
+
+Prompt:
+Asked for Step 17 to implement MONITOR STOP.
+
+How I used it:
+I added handling for MONITOR STOP so the Agent terminates the active UDP monitoring process and returns the required SID-tagged response.

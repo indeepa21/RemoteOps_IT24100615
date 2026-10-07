@@ -142,3 +142,14 @@ The monitoring process sends SYSINFO-style UDP datagrams every 2 seconds.
 Each UDP message includes SID:5160.
 
 The monitoring process is also stopped if the TCP Controller disconnects.
+
+## UDP Monitoring Stop
+
+I implemented MONITOR STOP for an authenticated session.
+
+The Agent stores the monitoring child process ID in monitor_pid. When MONITOR STOP is received, the Agent sends SIGTERM to that process and waits for it to finish using waitpid().
+
+After monitoring stops, the Agent returns:
+OK MONITOR_STOPPED SID:5160
+
+I tested that UDP monitoring messages stop after the command.
