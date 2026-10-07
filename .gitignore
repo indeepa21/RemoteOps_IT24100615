@@ -3,3 +3,7 @@ agent_615
 controller_615
 remoteops_IT24100615.log
 IE3090_IT24100615.zip
+agentfiles/
+upload_test.txt
+downloaded_test.txt
+get_stream.bin
