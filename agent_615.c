@@ -11,9 +11,9 @@
 
 #define AGENT_PORT 9410
 #define BACKLOG 5
-
 #define RECEIVE_BUFFER_SIZE 4096
 #define LINE_SIZE 1024
+#define RESPONSE_SIZE 4096
 
 #define AUTH_TOKEN "OPS-0615"
 #define SID "5160"
@@ -265,6 +265,77 @@ int get_sysinfo(double *cpu_load,
     return 0;
 }
 
+int get_process_list(char *output, size_t output_size)
+{
+    FILE *pipe;
+    char line[256];
+    size_t used = 0;
+    int first_process = 1;
+
+    /*
+     * Read PID and process name.
+     */
+    pipe = popen("ps -eo pid=,comm=", "r");
+
+    if (pipe == NULL)
+    {
+        return -1;
+    }
+
+    output[0] = '\0';
+
+    while (fgets(line, sizeof(line), pipe) != NULL)
+    {
+        int pid;
+        char process_name[128];
+
+        if (sscanf(line, "%d %127s", &pid, process_name) != 2)
+        {
+            continue;
+        }
+
+        char entry[180];
+
+        if (first_process)
+        {
+            snprintf(entry,
+                     sizeof(entry),
+                     "%s/%d",
+                     process_name,
+                     pid);
+
+            first_process = 0;
+        }
+        else
+        {
+            snprintf(entry,
+                     sizeof(entry),
+                     ",%s/%d",
+                     process_name,
+                     pid);
+        }
+
+        size_t entry_length = strlen(entry);
+
+        /*
+         * Leave space for SID and newline later.
+         */
+        if (used + entry_length + 1 >= output_size)
+        {
+            break;
+        }
+
+        memcpy(output + used, entry, entry_length);
+
+        used += entry_length;
+        output[used] = '\0';
+    }
+
+    pclose(pipe);
+
+    return 0;
+}
+
 int main(void)
 {
     int server_socket;
@@ -445,6 +516,45 @@ int main(void)
 
         printf("SYSINFO sent successfully.\n");
     }
+
+     else if (strcmp(line, "LISTPROC") == 0)
+{
+    char process_list[RESPONSE_SIZE];
+    char response[RESPONSE_SIZE + 64];
+
+    if (get_process_list(
+            process_list,
+            sizeof(process_list)) == 0)
+    {
+        snprintf(
+            response,
+            sizeof(response),
+            "OK PROCS %s SID:5160\n",
+            process_list
+        );
+
+        if (send_response(client_socket, response) < 0)
+        {
+            perror("send");
+            break;
+        }
+
+        printf("LISTPROC sent successfully.\n");
+    }
+    else
+    {
+        if (send_response(
+                client_socket,
+                "ERR 007 LISTPROC_FAILED SID:5160\n") < 0)
+        {
+            perror("send");
+            break;
+        }
+
+        printf("Failed to read process list.\n");
+    }
+}
+
     else
     {
         if (send_response(

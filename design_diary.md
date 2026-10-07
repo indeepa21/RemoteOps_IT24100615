@@ -88,3 +88,13 @@ I implemented the SYSINFO command after authentication.
 The Agent reads the current system load from /proc/loadavg, memory information from /proc/meminfo, and uptime from /proc/uptime.
 
 The response includes CPU load, memory used in MB, uptime in seconds, and SID:5160.
+
+## LISTPROC
+
+I implemented the LISTPROC command after authentication.
+
+The Agent uses popen() with the Linux ps command to read a snapshot of running process IDs and process names.
+
+The process information is converted into a comma-separated list and returned with SID:5160.
+
+I also checked that LISTPROC is rejected if authentication has not succeeded.

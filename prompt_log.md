@@ -95,3 +95,13 @@ Asked for the next step after implementing authentication.
 
 How I used it:
 I implemented SYSINFO using Linux /proc files and tested the command after successful authentication.
+
+## Entry 11
+
+Tool: ChatGPT
+
+Prompt:
+Asked for Step 12 to implement LISTPROC.
+
+How I used it:
+I implemented LISTPROC using popen() and the Linux ps command, formatted the running processes into the required response, and tested it after authentication.
