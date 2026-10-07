@@ -164,3 +164,13 @@ OK BYE SID:5160
 If UDP monitoring is active, the Agent stops the monitoring child process before closing the TCP connection.
 
 The QUIT command then exits the command-processing loop and closes the connection cleanly.
+
+## Logging and Disconnect Handling
+
+I implemented timestamped logging using the personalised file remoteops_IT24100615.log.
+
+The Agent logs connections, commands, authentication results, PUT/GET transfers and monitoring activity.
+
+AUTH tokens are redacted in the log.
+
+I also ignored SIGPIPE and handled recv() disconnect/error cases so an unexpected Controller disconnect does not cause an uncontrolled crash.

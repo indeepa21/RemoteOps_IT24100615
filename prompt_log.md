@@ -165,3 +165,13 @@ Asked for Step 18 to implement QUIT.
 
 How I used it:
 I implemented QUIT so the Agent sends the required BYE response, stops active monitoring if necessary, and closes the TCP connection cleanly.
+
+## Entry 18
+
+Tool: ChatGPT
+
+Prompt:
+Asked for Step 19 to implement logging and graceful disconnect handling.
+
+How I used it:
+I added timestamped logging to remoteops_IT24100615.log and added handling for clean and unexpected TCP disconnects.
