@@ -115,3 +115,13 @@ Asked for Step 13 to implement the restricted EXEC command.
 
 How I used it:
 I implemented the fixed EXEC whitelist, mapped each allowed name to a predefined Linux command, and tested both an allowed command and a rejected command.
+
+## Entry 13
+
+Tool: ChatGPT
+
+Prompt:
+Asked for Step 14 to implement PUT file upload.
+
+How I used it:
+I implemented exact-byte file reception for PUT, stored uploaded files under my personalised storage directory, and tested the upload and file integrity.

@@ -108,3 +108,15 @@ The allowed names are DATE, UPTIME, DISKFREE, HOSTNAME and WHOAMI.
 The Agent maps these names to fixed Linux commands instead of executing arbitrary user input.
 
 I tested an allowed EXEC command and also tested that a non-whitelisted command is rejected.
+
+## PUT File Upload
+
+I implemented the PUT file upload command.
+
+The Agent reads the filename and file size from the PUT header and then receives exactly the declared number of raw bytes.
+
+The receive function also handles file bytes that may already be present in the TCP line buffer.
+
+Uploaded files are stored under ./agentfiles/IT24100615/.
+
+I selected a maximum upload size of 10 MB.

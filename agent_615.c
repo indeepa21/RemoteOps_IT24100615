@@ -8,7 +8,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-
+#include <sys/stat.h>
 /*
  * Personalised values for IT24100615
  */
@@ -23,7 +23,8 @@
 #define RECEIVE_BUFFER_SIZE 4096
 #define LINE_SIZE 1024
 #define RESPONSE_SIZE 4096
-
+#define STORAGE_DIR "./agentfiles/IT24100615"
+#define MAX_FILE_SIZE (10 * 1024 * 1024)
 
 /*
  * Stores TCP bytes that have already been received
@@ -487,6 +488,135 @@ int run_allowed_command(const char *command,
     return 0;
 }
 
+int valid_filename(const char *filename)
+{
+    if (filename == NULL || filename[0] == '\0')
+    {
+        return 0;
+    }
+
+    /*
+     * Do not allow paths.
+     * Files must remain inside STORAGE_DIR.
+     */
+    if (strchr(filename, '/') != NULL)
+    {
+        return 0;
+    }
+
+    /*
+     * Reject parent-directory references.
+     */
+    if (strstr(filename, "..") != NULL)
+    {
+        return 0;
+    }
+
+    return 1;
+}
+
+
+int receive_file_bytes(int socket_fd,
+                       LineReader *reader,
+                       FILE *file,
+                       long file_size)
+{
+    long total_received = 0;
+
+    /*
+     * First consume any file bytes that are
+     * already inside the LineReader buffer.
+     */
+    while (reader->start < reader->end &&
+           total_received < file_size)
+    {
+        long remaining =
+            file_size - total_received;
+
+        size_t buffered =
+            reader->end - reader->start;
+
+        size_t to_write = buffered;
+
+        if ((long)to_write > remaining)
+        {
+            to_write = (size_t)remaining;
+        }
+
+        if (fwrite(
+                reader->buffer + reader->start,
+                1,
+                to_write,
+                file) != to_write)
+        {
+            return -1;
+        }
+
+        reader->start += to_write;
+        total_received += (long)to_write;
+    }
+
+    if (reader->start == reader->end)
+    {
+        reader->start = 0;
+        reader->end = 0;
+    }
+
+    /*
+     * Receive the remaining bytes directly
+     * from the TCP socket.
+     */
+    char buffer[4096];
+
+    while (total_received < file_size)
+    {
+        long remaining =
+            file_size - total_received;
+
+        size_t wanted = sizeof(buffer);
+
+        if ((long)wanted > remaining)
+        {
+            wanted = (size_t)remaining;
+        }
+
+        ssize_t bytes_received = recv(
+            socket_fd,
+            buffer,
+            wanted,
+            0
+        );
+
+        if (bytes_received == 0)
+        {
+            return -1;
+        }
+
+        if (bytes_received < 0)
+        {
+            if (errno == EINTR)
+            {
+                continue;
+            }
+
+            return -1;
+        }
+
+        if (fwrite(
+                buffer,
+                1,
+                (size_t)bytes_received,
+                file) != (size_t)bytes_received)
+        {
+            return -1;
+        }
+
+        total_received += bytes_received;
+    }
+
+    return 0;
+}
+
 
 int main(void)
 {
@@ -873,6 +1003,128 @@ int main(void)
                 }
             }
 
+
+else if (strncmp(line, "PUT ", 4) == 0)
+{
+    char filename[256];
+    long file_size;
+
+    if (sscanf(
+            line,
+            "PUT %255s %ld",
+            filename,
+            &file_size) != 2)
+    {
+        if (send_response(
+                client_socket,
+                "ERR 009 INVALID_PUT_FORMAT SID:" SID "\n") < 0)
+        {
+            perror("send");
+            break;
+        }
+
+        continue;
+    }
+
+    if (!valid_filename(filename))
+    {
+        if (send_response(
+                client_socket,
+                "ERR 009 INVALID_FILENAME SID:" SID "\n") < 0)
+        {
+            perror("send");
+            break;
+        }
+
+        continue;
+    }
+
+    if (file_size < 0 ||
+        file_size > MAX_FILE_SIZE)
+    {
+        send_response(
+            client_socket,
+            "ERR 004 FILE_TOO_LARGE SID:" SID "\n"
+        );
+
+        /*
+         * Close this session because raw upload
+         * bytes may immediately follow the header.
+         */
+        printf("PUT rejected: file too large.\n");
+        break;
+    }
+
+    /*
+     * Ensure the personalised storage directory exists.
+     */
+    mkdir("agentfiles", 0755);
+    mkdir(STORAGE_DIR, 0755);
+
+    char file_path[512];
+
+    snprintf(
+        file_path,
+        sizeof(file_path),
+        "%s/%s",
+        STORAGE_DIR,
+        filename
+    );
+
+    FILE *file = fopen(file_path, "wb");
+
+    if (file == NULL)
+    {
+        if (send_response(
+                client_socket,
+                "ERR 010 FILE_OPEN_FAILED SID:" SID "\n") < 0)
+        {
+            perror("send");
+            break;
+        }
+
+        continue;
+    }
+
+    if (receive_file_bytes(
+            client_socket,
+            &reader,
+            file,
+            file_size) != 0)
+    {
+        fclose(file);
+        remove(file_path);
+
+        printf("PUT failed while receiving file.\n");
+        break;
+    }
+
+    fclose(file);
+
+    char response[512];
+
+    snprintf(
+        response,
+        sizeof(response),
+        "OK FILE_RECEIVED %s SID:%s\n",
+        filename,
+        SID
+    );
+
+    if (send_response(
+            client_socket,
+            response) < 0)
+    {
+        perror("send");
+        break;
+    }
+
+    printf(
+        "PUT completed: %s (%ld bytes)\n",
+        filename,
+        file_size
+    );
+}
 
             /*
              * Commands not implemented yet.
