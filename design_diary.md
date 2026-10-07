@@ -98,3 +98,13 @@ The Agent uses popen() with the Linux ps command to read a snapshot of running p
 The process information is converted into a comma-separated list and returned with SID:5160.
 
 I also checked that LISTPROC is rejected if authentication has not succeeded.
+
+## Restricted EXEC
+
+I implemented EXEC using a fixed whitelist.
+
+The allowed names are DATE, UPTIME, DISKFREE, HOSTNAME and WHOAMI.
+
+The Agent maps these names to fixed Linux commands instead of executing arbitrary user input.
+
+I tested an allowed EXEC command and also tested that a non-whitelisted command is rejected.

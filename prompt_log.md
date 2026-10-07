@@ -105,3 +105,13 @@ Asked for Step 12 to implement LISTPROC.
 
 How I used it:
 I implemented LISTPROC using popen() and the Linux ps command, formatted the running processes into the required response, and tested it after authentication.
+
+## Entry 12
+
+Tool: ChatGPT
+
+Prompt:
+Asked for Step 13 to implement the restricted EXEC command.
+
+How I used it:
+I implemented the fixed EXEC whitelist, mapped each allowed name to a predefined Linux command, and tested both an allowed command and a rejected command.
