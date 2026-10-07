@@ -174,3 +174,15 @@ The Agent logs connections, commands, authentication results, PUT/GET transfers 
 AUTH tokens are redacted in the log.
 
 I also ignored SIGPIPE and handled recv() disconnect/error cases so an unexpected Controller disconnect does not cause an uncontrolled crash.
+
+## Concurrency
+
+I changed the Agent from a single-client server to a multi-process concurrent server.
+
+The parent Agent remains in an accept() loop. When a Controller connects, fork() creates a child process to handle that Controller.
+
+Each child has its own authentication state, TCP line buffer and monitoring state.
+
+The parent closes the connected client socket and continues accepting more Controllers. The child closes the listening socket and handles its assigned session.
+
+I tested at least five simultaneous Controller connections.

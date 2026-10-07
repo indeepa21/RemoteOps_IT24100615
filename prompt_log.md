@@ -46,7 +46,17 @@ Asked for Step 6 to create the Makefile and first simple C programs.
 How I used it:
 I created Makefile_615, simple starter Agent and Controller programs, compiled them with GCC, tested make clean, rebuilt them, and ran both programs.
 
-## Entry 6
+## Concurrency
+
+I changed the Agent from a single-client server to a multi-process concurrent server.
+
+The parent Agent remains in an accept() loop. When a Controller connects, fork() creates a child process to handle that Controller.
+
+Each child has its own authentication state, TCP line buffer and monitoring state.
+
+The parent closes the connected client socket and continues accepting more Controllers. The child closes the listening socket and handles its assigned session.
+
+I tested at least five simultaneous Controller connections.## Entry 6
 
 Tool: ChatGPT
 
@@ -175,3 +185,25 @@ Asked for Step 19 to implement logging and graceful disconnect handling.
 
 How I used it:
 I added timestamped logging to remoteops_IT24100615.log and added handling for clean and unexpected TCP disconnects.
+
+## Concurrency
+
+I changed the Agent from a single-client server to a multi-process concurrent server.
+
+The parent Agent remains in an accept() loop. When a Controller connects, fork() creates a child process to handle that Controller.
+
+Each child has its own authentication state, TCP line buffer and monitoring state.
+
+The parent closes the connected client socket and continues accepting more Controllers. The child closes the listening socket and handles its assigned session.
+
+I tested at least five simultaneous Controller connections.
+
+## Entry 19
+
+Tool: ChatGPT
+
+Prompt:
+Asked for Step 20 to implement concurrency for at least five Controllers.
+
+How I used it:
+I restructured the Agent using a fork-per-Controller model so the parent can continue accepting connections while child processes handle individual sessions.
