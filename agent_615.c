@@ -3,7 +3,8 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
-
+#include <signal.h>
+#include <sys/wait.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -15,7 +16,7 @@
 #define AGENT_PORT 9410
 #define AUTH_TOKEN "OPS-0615"
 #define SID "5160"
-
+#define MONITOR_INTERVAL 2
 /*
  * General settings
  */
@@ -666,6 +667,70 @@ int send_file_bytes(int socket_fd,
 }
 
 
+void run_udp_monitor(const char *controller_ip, int udp_port)
+{
+    int udp_socket;
+    struct sockaddr_in udp_address;
+
+    udp_socket = socket(AF_INET, SOCK_DGRAM, 0);
+
+    if (udp_socket < 0)
+    {
+        perror("UDP socket");
+        exit(1);
+    }
+
+    memset(&udp_address, 0, sizeof(udp_address));
+
+    udp_address.sin_family = AF_INET;
+    udp_address.sin_port = htons((unsigned short)udp_port);
+
+    if (inet_pton(
+            AF_INET,
+            controller_ip,
+            &udp_address.sin_addr) <= 0)
+    {
+        close(udp_socket);
+        exit(1);
+    }
+
+    while (1)
+    {
+        double cpu_load;
+        long mem_used_mb;
+        long uptime_sec;
+
+        if (get_sysinfo(
+                &cpu_load,
+                &mem_used_mb,
+                &uptime_sec) == 0)
+        {
+            char message[256];
+
+            snprintf(
+                message,
+                sizeof(message),
+                "SYSINFO %.2f %ld %ld SID:%s",
+                cpu_load,
+                mem_used_mb,
+                uptime_sec,
+                SID
+            );
+
+            sendto(
+                udp_socket,
+                message,
+                strlen(message),
+                0,
+                (struct sockaddr *)&udp_address,
+                sizeof(udp_address)
+            );
+        }
+
+        sleep(MONITOR_INTERVAL);
+    }
+}
+
 
 int main(void)
 {
@@ -778,7 +843,7 @@ int main(void)
     char line[LINE_SIZE];
 
     int authenticated = 0;
-
+    pid_t monitor_pid = -1;
 
     /*
      * Read complete protocol lines until
@@ -1290,6 +1355,98 @@ else if (strncmp(line, "GET ", 4) == 0)
     );
 }
 
+else if (strncmp(line, "MONITOR START ", 14) == 0)
+{
+    int udp_port;
+
+    if (sscanf(
+            line,
+            "MONITOR START %d",
+            &udp_port) != 1 ||
+        udp_port < 1 ||
+        udp_port > 65535)
+    {
+        if (send_response(
+                client_socket,
+                "ERR 011 INVALID_UDP_PORT SID:" SID "\n") < 0)
+        {
+            perror("send");
+            break;
+        }
+
+        continue;
+    }
+
+    if (monitor_pid > 0)
+    {
+        kill(monitor_pid, SIGTERM);
+        waitpid(monitor_pid, NULL, 0);
+        monitor_pid = -1;
+    }
+
+    char controller_ip[INET_ADDRSTRLEN];
+
+    if (inet_ntop(
+            AF_INET,
+            &client_address.sin_addr,
+            controller_ip,
+            sizeof(controller_ip)) == NULL)
+    {
+        if (send_response(
+                client_socket,
+                "ERR 012 MONITOR_FAILED SID:" SID "\n") < 0)
+        {
+            perror("send");
+            break;
+        }
+
+        continue;
+    }
+
+    monitor_pid = fork();
+
+    if (monitor_pid < 0)
+    {
+        if (send_response(
+                client_socket,
+                "ERR 012 MONITOR_FAILED SID:" SID "\n") < 0)
+        {
+            perror("send");
+            break;
+        }
+
+        monitor_pid = -1;
+        continue;
+    }
+
+    if (monitor_pid == 0)
+    {
+        close(client_socket);
+        close(server_socket);
+
+        run_udp_monitor(
+            controller_ip,
+            udp_port
+        );
+
+        exit(0);
+    }
+
+    if (send_response(
+            client_socket,
+            "OK MONITOR_STARTED SID:" SID "\n") < 0)
+    {
+        perror("send");
+        break;
+    }
+
+    printf(
+        "UDP monitoring started for %s:%d\n",
+        controller_ip,
+        udp_port
+    );
+}
+
             /*
              * Commands not implemented yet.
              *
@@ -1316,14 +1473,20 @@ else if (strncmp(line, "GET ", 4) == 0)
         /*
          * Controller closed the connection.
          */
-        else if (result == 0)
-        {
-            printf(
-                "Controller disconnected.\n"
-            );
+         else if (result == 0)
+{
+    if (monitor_pid > 0)
+    {
+        kill(monitor_pid, SIGTERM);
+        waitpid(monitor_pid, NULL, 0);
+        monitor_pid = -1;
 
-            break;
-        }
+        printf("UDP monitoring stopped.\n");
+    }
+
+    printf("Controller disconnected.\n");
+    break;
+}
 
 
         /*
@@ -1348,6 +1511,11 @@ else if (strncmp(line, "GET ", 4) == 0)
             break;
         }
     }
+if (monitor_pid > 0)
+{
+    kill(monitor_pid, SIGTERM);
+    waitpid(monitor_pid, NULL, 0);
+}   
 
 
     /*

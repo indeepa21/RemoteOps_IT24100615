@@ -135,3 +135,13 @@ Asked for Step 15 to implement GET file download.
 
 How I used it:
 I implemented GET so the Agent sends the response header followed by the exact raw file bytes. I tested a successful download, file integrity, and the FILE_NOT_FOUND error.
+
+## Entry 15
+
+Tool: ChatGPT
+
+Prompt:
+Asked for Step 16 to implement UDP MONITOR START.
+
+How I used it:
+I implemented a UDP monitoring process that sends periodic SYSINFO-style datagrams to the Controller and includes SID:5160.

@@ -130,3 +130,15 @@ The Agent opens the requested file from ./agentfiles/IT24100615/, determines its
 I tested a successful download and compared the downloaded file using SHA-256.
 
 I also tested the FILE_NOT_FOUND response.
+
+## UDP Monitoring Start
+
+I implemented MONITOR START using UDP.
+
+After authentication, the Controller provides a UDP port. The Agent creates a separate monitoring process using fork() so that TCP commands can continue while monitoring is active.
+
+The monitoring process sends SYSINFO-style UDP datagrams every 2 seconds.
+
+Each UDP message includes SID:5160.
+
+The monitoring process is also stopped if the TCP Controller disconnects.
